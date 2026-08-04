@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Triangle Bell</title>
+    <title>Пей воду</title>
     <style>
       :root { color-scheme: dark; }
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -11,57 +11,56 @@
         margin: 0;
         min-width: 240px;
         min-height: 282px;
-        background: #111827;
-        color: #f9fafb;
+        background: #0f172a;
+        color: #f8fafc;
         font-family: ui-rounded, system-ui, -apple-system, sans-serif;
       }
-      main {
-        width: 240px;
-        height: 282px;
-        display: grid;
-        grid-template-rows: auto 1fr auto;
-        padding: 18px 16px 14px;
-        text-align: center;
+      main { width: 240px; height: 282px; padding: 14px 14px 12px; text-align: center; }
+      h1 { margin: 0; font-size: 21px; }
+      .hint { margin: 3px 0 10px; color: #bfdbfe; font-size: 11px; }
+      #waterButton {
+        width: 100%; padding: 13px 8px; border: 0; border-radius: 14px;
+        background: #0ea5e9; color: white; font: inherit; font-size: 20px;
+        font-weight: 800; cursor: pointer; box-shadow: 0 5px 12px rgb(14 165 233 / .25);
       }
-      h1 { margin: 0; font-size: 18px; letter-spacing: .02em; }
-      p { margin: 7px 0 0; color: #cbd5e1; font-size: 12px; }
-      button {
-        align-self: center;
-        justify-self: center;
-        width: 164px;
-        height: 148px;
-        padding: 0;
-        border: 0;
-        background: transparent;
-        cursor: pointer;
+      #waterButton.running { background: #16a34a; }
+      .choices { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 11px 0; }
+      .choice {
+        border: 1px solid #334155; border-radius: 9px; padding: 8px 3px;
+        color: #cbd5e1; background: #1e293b; font: inherit; font-size: 11px; cursor: pointer;
       }
-      .triangle {
-        width: 0;
-        height: 0;
-        margin: auto;
-        border-left: 72px solid transparent;
-        border-right: 72px solid transparent;
-        border-bottom: 126px solid #ef4444;
-        filter: drop-shadow(0 8px 8px rgb(0 0 0 / .28));
-        transition: border-bottom-color .2s ease, transform .2s ease;
-      }
-      button:active .triangle { transform: scale(.93); }
-      button[aria-pressed="true"] .triangle { border-bottom-color: #22c55e; }
-      #status { font-weight: 700; color: #fca5a5; }
-      button[aria-pressed="true"] + #status { color: #86efac; }
+      .choice.selected { background: #0369a1; border-color: #38bdf8; color: white; font-weight: 700; }
+      #status { min-height: 30px; margin: 5px 0 0; color: #e2e8f0; font-size: 12px; line-height: 1.35; }
+      #stopButton { margin-top: 6px; border: 0; background: transparent; color: #fca5a5; font: inherit; font-size: 11px; cursor: pointer; }
+      #stopButton[hidden] { display: none; }
     </style>
   </head>
   <body>
     <main>
-      <header><h1>Triangle Bell</h1><p>Tap the triangle to ring</p></header>
-      <button id="triangleButton" type="button" aria-label="Red triangle" aria-pressed="false">
-        <span class="triangle" aria-hidden="true"></span>
-      </button>
-      <p id="status" role="status">Red</p>
+      <h1>Напоминатель</h1>
+      <p class="hint">Выбери интервал, затем нажми кнопку</p>
+      <button id="waterButton" type="button" aria-pressed="false">Пей воду</button>
+      <div class="choices" aria-label="Интервал напоминания">
+        <button class="choice" data-minutes="60">Каждый час</button>
+        <button class="choice" data-minutes="30">30 минут</button>
+        <button class="choice" data-minutes="10">10 минут</button>
+        <button class="choice" data-minutes="5">5 минут</button>
+        <button class="choice" data-minutes="1">1 минута</button>
+      </div>
+      <p id="status" role="status">Интервал: каждый час</p>
+      <button id="stopButton" type="button" hidden>Остановить</button>
     </main>
     <script>
-      const button = document.querySelector('#triangleButton');
+      const waterButton = document.querySelector('#waterButton');
       const status = document.querySelector('#status');
+      const stopButton = document.querySelector('#stopButton');
+      const choices = [...document.querySelectorAll('.choice')];
+      let minutes = 60;
+      let timer = null;
+
+      function labelFor(value) {
+        return ({ 60: 'каждый час', 30: 'каждые 30 минут', 10: 'каждые 10 минут', 5: 'каждые 5 минут', 1: 'каждую минуту' })[value];
+      }
 
       function ringBell() {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -70,31 +69,57 @@
         const now = context.currentTime;
         const output = context.createGain();
         output.gain.setValueAtTime(0.0001, now);
-        output.gain.exponentialRampToValueAtTime(0.45, now + 0.012);
+        output.gain.exponentialRampToValueAtTime(0.42, now + 0.012);
         output.gain.exponentialRampToValueAtTime(0.0001, now + 1.35);
         output.connect(context.destination);
-
         [1047, 1319, 1568, 2093].forEach((frequency, index) => {
           const tone = context.createOscillator();
           const gain = context.createGain();
-          tone.type = 'sine';
-          tone.frequency.setValueAtTime(frequency, now);
+          tone.type = 'sine'; tone.frequency.setValueAtTime(frequency, now);
           gain.gain.setValueAtTime(0.34 / (index + 1), now);
           gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.25 - index * 0.08);
-          tone.connect(gain).connect(output);
-          tone.start(now);
-          tone.stop(now + 1.4);
+          tone.connect(gain).connect(output); tone.start(now); tone.stop(now + 1.4);
         });
         setTimeout(() => context.close(), 1600);
       }
 
-      button.addEventListener('click', () => {
-        const green = button.getAttribute('aria-pressed') === 'true';
-        button.setAttribute('aria-pressed', String(!green));
-        button.setAttribute('aria-label', green ? 'Red triangle' : 'Green triangle');
-        status.textContent = green ? 'Red' : 'Green';
+      function remind() {
         ringBell();
-      });
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const phrase = new SpeechSynthesisUtterance('Пей воду');
+          phrase.lang = 'ru-RU'; phrase.rate = 0.9;
+          window.speechSynthesis.speak(phrase);
+        }
+        status.textContent = 'Пора пить воду! Повтор: ' + labelFor(minutes);
+      }
+
+      function start() {
+        clearInterval(timer);
+        waterButton.classList.add('running');
+        waterButton.setAttribute('aria-pressed', 'true');
+        stopButton.hidden = false;
+        status.textContent = 'Напоминаю ' + labelFor(minutes);
+        timer = setInterval(remind, minutes * 60 * 1000);
+      }
+
+      function stop() {
+        clearInterval(timer); timer = null;
+        window.speechSynthesis?.cancel();
+        waterButton.classList.remove('running');
+        waterButton.setAttribute('aria-pressed', 'false');
+        stopButton.hidden = true;
+        status.textContent = 'Таймер остановлен';
+      }
+
+      choices.forEach(choice => choice.addEventListener('click', () => {
+        minutes = Number(choice.dataset.minutes);
+        choices.forEach(item => item.classList.toggle('selected', item === choice));
+        if (timer) start(); else status.textContent = 'Интервал: ' + labelFor(minutes);
+      }));
+      waterButton.addEventListener('click', () => timer ? stop() : start());
+      stopButton.addEventListener('click', stop);
+      choices[0].classList.add('selected');
     </script>
   </body>
 </html>
