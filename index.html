@@ -15,6 +15,14 @@
         color: #f8fafc;
         font-family: ui-rounded, system-ui, -apple-system, sans-serif;
       }
+      body.flash { animation: reminderFlash 1.35s ease-in-out; }
+      @keyframes reminderFlash {
+        0%, 100% { background: #0f172a; }
+        18% { background: #7c3aed; }
+        40% { background: #0ea5e9; }
+        62% { background: #16a34a; }
+        80% { background: #f97316; }
+      }
       main { width: 240px; height: 282px; padding: 14px 14px 12px; text-align: center; }
       h1 { margin: 0; font-size: 21px; }
       .hint { margin: 3px 0 10px; color: #bfdbfe; font-size: 11px; }
@@ -101,30 +109,35 @@
         setTimeout(() => context.close(), 1600);
       }
 
+      function flashScreen() {
+        document.body.classList.remove('flash');
+        void document.body.offsetWidth;
+        document.body.classList.add('flash');
+      }
+
+      function speak(text, count = 1) {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        for (let index = 0; index < count; index += 1) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'ru-RU';
+          utterance.rate = 0.9;
+          utterance.pitch = 1;
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+
       function remind() {
         ringBell();
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          for (let index = 0; index < repeats; index += 1) {
-            const phrase = new SpeechSynthesisUtterance('Пей воду');
-            phrase.lang = 'ru-RU'; phrase.rate = 0.9;
-            window.speechSynthesis.speak(phrase);
-          }
-        }
+        flashScreen();
+        speak('Пей воду', repeats);
         status.textContent = 'Пора пить воду! ' + repeats + '×, ' + labelFor(minutes);
         nextReminderAt = Date.now() + minutes * 60 * 1000;
         updateCountdown();
       }
 
       function greet() {
-        const message = 'Привет, я буду напоминать тебе пить воду. Выбери интервал напоминаний.';
         status.textContent = 'Выбери интервал и нажми «Пей воду»';
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const phrase = new SpeechSynthesisUtterance(message);
-          phrase.lang = 'ru-RU'; phrase.rate = 0.9;
-          window.speechSynthesis.speak(phrase);
-        }
       }
 
       function updateCountdown() {
@@ -141,6 +154,8 @@
         waterButton.setAttribute('aria-pressed', 'true');
         stopButton.hidden = false;
         status.textContent = 'Напоминаю ' + labelFor(minutes);
+        flashScreen();
+        speak('Я буду напоминать тебе пить воду');
         nextReminderAt = Date.now() + minutes * 60 * 1000;
         clearInterval(countdownTimer);
         countdownTimer = setInterval(updateCountdown, 1000);
