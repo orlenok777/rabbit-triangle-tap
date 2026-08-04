@@ -24,12 +24,16 @@
         font-weight: 800; cursor: pointer; box-shadow: 0 5px 12px rgb(14 165 233 / .25);
       }
       #waterButton.running { background: #16a34a; }
-      .choices { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 11px 0; }
+      .choices { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; margin: 9px 0 7px; }
       .choice {
         border: 1px solid #334155; border-radius: 9px; padding: 8px 3px;
         color: #cbd5e1; background: #1e293b; font: inherit; font-size: 11px; cursor: pointer;
       }
       .choice.selected { background: #0369a1; border-color: #38bdf8; color: white; font-weight: 700; }
+      .repeat-label { margin: 0 0 4px; color: #cbd5e1; font-size: 11px; }
+      .repeats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+      .repeat { padding: 6px 1px; border: 1px solid #334155; border-radius: 7px; background: #1e293b; color: #cbd5e1; font: inherit; font-size: 10px; }
+      .repeat.selected { background: #7c3aed; border-color: #c4b5fd; color: white; font-weight: 700; }
       #status { min-height: 30px; margin: 5px 0 0; color: #e2e8f0; font-size: 12px; line-height: 1.35; }
       #stopButton { margin-top: 6px; border: 0; background: transparent; color: #fca5a5; font: inherit; font-size: 11px; cursor: pointer; }
       #stopButton[hidden] { display: none; }
@@ -48,6 +52,13 @@
         <button class="choice" data-minutes="5">5 минут</button>
         <button class="choice" data-minutes="1">1 минута</button>
       </div>
+      <p class="repeat-label">Повторить «Пей воду»</p>
+      <div class="repeats" aria-label="Количество повторов">
+        <button class="repeat" data-repeats="1">1 раз</button>
+        <button class="repeat" data-repeats="3">3 раза</button>
+        <button class="repeat" data-repeats="5">5 раз</button>
+        <button class="repeat" data-repeats="10">10 раз</button>
+      </div>
       <p id="status" role="status">Интервал: каждый час</p>
       <p id="countdown" aria-live="polite">Выбери интервал</p>
       <button id="stopButton" type="button" hidden>Остановить</button>
@@ -58,7 +69,9 @@
       const stopButton = document.querySelector('#stopButton');
       const countdown = document.querySelector('#countdown');
       const choices = [...document.querySelectorAll('.choice')];
+      const repeatChoices = [...document.querySelectorAll('.repeat')];
       let minutes = 60;
+      let repeats = 1;
       let timer = null;
       let countdownTimer = null;
       let nextReminderAt = 0;
@@ -92,11 +105,13 @@
         ringBell();
         if ('speechSynthesis' in window) {
           window.speechSynthesis.cancel();
-          const phrase = new SpeechSynthesisUtterance('Пей воду');
-          phrase.lang = 'ru-RU'; phrase.rate = 0.9;
-          window.speechSynthesis.speak(phrase);
+          for (let index = 0; index < repeats; index += 1) {
+            const phrase = new SpeechSynthesisUtterance('Пей воду');
+            phrase.lang = 'ru-RU'; phrase.rate = 0.9;
+            window.speechSynthesis.speak(phrase);
+          }
         }
-        status.textContent = 'Пора пить воду! Повтор: ' + labelFor(minutes);
+        status.textContent = 'Пора пить воду! ' + repeats + '×, ' + labelFor(minutes);
         nextReminderAt = Date.now() + minutes * 60 * 1000;
         updateCountdown();
       }
@@ -148,9 +163,15 @@
         choices.forEach(item => item.classList.toggle('selected', item === choice));
         if (timer) start(); else status.textContent = 'Интервал: ' + labelFor(minutes);
       }));
+      repeatChoices.forEach(choice => choice.addEventListener('click', () => {
+        repeats = Number(choice.dataset.repeats);
+        repeatChoices.forEach(item => item.classList.toggle('selected', item === choice));
+        if (timer) status.textContent = 'Повторяю ' + repeats + ' раз, ' + labelFor(minutes);
+      }));
       waterButton.addEventListener('click', () => timer ? stop() : start());
       stopButton.addEventListener('click', stop);
       choices[0].classList.add('selected');
+      repeatChoices[0].classList.add('selected');
       setTimeout(greet, 250);
     </script>
   </body>
