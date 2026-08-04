@@ -101,6 +101,17 @@
         updateCountdown();
       }
 
+      function greet() {
+        const message = 'Привет, я буду напоминать тебе пить воду. Выбери интервал напоминаний.';
+        status.textContent = 'Выбери интервал и нажми «Пей воду»';
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const phrase = new SpeechSynthesisUtterance(message);
+          phrase.lang = 'ru-RU'; phrase.rate = 0.9;
+          window.speechSynthesis.speak(phrase);
+        }
+      }
+
       function updateCountdown() {
         if (!timer) return;
         const seconds = Math.max(0, Math.ceil((nextReminderAt - Date.now()) / 1000));
@@ -140,6 +151,7 @@
       waterButton.addEventListener('click', () => timer ? stop() : start());
       stopButton.addEventListener('click', stop);
       choices[0].classList.add('selected');
+      setTimeout(greet, 250);
     </script>
   </body>
 </html>
