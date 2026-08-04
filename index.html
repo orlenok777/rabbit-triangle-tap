@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Triangle Tap</title>
+    <title>Triangle Bell</title>
     <style>
       :root { color-scheme: dark; }
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -53,7 +53,7 @@
   </head>
   <body>
     <main>
-      <header><h1>Triangle Tap</h1><p>Tap the triangle</p></header>
+      <header><h1>Triangle Bell</h1><p>Tap the triangle to ring</p></header>
       <button id="triangleButton" type="button" aria-label="Red triangle" aria-pressed="false">
         <span class="triangle" aria-hidden="true"></span>
       </button>
@@ -62,11 +62,38 @@
     <script>
       const button = document.querySelector('#triangleButton');
       const status = document.querySelector('#status');
+
+      function ringBell() {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const context = new AudioContext();
+        const now = context.currentTime;
+        const output = context.createGain();
+        output.gain.setValueAtTime(0.0001, now);
+        output.gain.exponentialRampToValueAtTime(0.45, now + 0.012);
+        output.gain.exponentialRampToValueAtTime(0.0001, now + 1.35);
+        output.connect(context.destination);
+
+        [1047, 1319, 1568, 2093].forEach((frequency, index) => {
+          const tone = context.createOscillator();
+          const gain = context.createGain();
+          tone.type = 'sine';
+          tone.frequency.setValueAtTime(frequency, now);
+          gain.gain.setValueAtTime(0.34 / (index + 1), now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.25 - index * 0.08);
+          tone.connect(gain).connect(output);
+          tone.start(now);
+          tone.stop(now + 1.4);
+        });
+        setTimeout(() => context.close(), 1600);
+      }
+
       button.addEventListener('click', () => {
         const green = button.getAttribute('aria-pressed') === 'true';
         button.setAttribute('aria-pressed', String(!green));
         button.setAttribute('aria-label', green ? 'Red triangle' : 'Green triangle');
         status.textContent = green ? 'Red' : 'Green';
+        ringBell();
       });
     </script>
   </body>
