@@ -43,9 +43,14 @@
       .repeat { padding: 6px 1px; border: 1px solid #334155; border-radius: 7px; background: #1e293b; color: #cbd5e1; font: inherit; font-size: 10px; }
       .repeat.selected { background: #7c3aed; border-color: #c4b5fd; color: white; font-weight: 700; }
       #status { min-height: 30px; margin: 5px 0 0; color: #e2e8f0; font-size: 12px; line-height: 1.35; }
-      #stopButton { margin-top: 6px; border: 0; background: transparent; color: #fca5a5; font: inherit; font-size: 11px; cursor: pointer; }
+      .actions { display: flex; justify-content: center; gap: 10px; margin-top: 6px; }
+      #stopButton, #testButton { border: 0; background: transparent; font: inherit; font-size: 11px; cursor: pointer; }
+      #stopButton { color: #fca5a5; }
+      #testButton { color: #fde68a; }
       #stopButton[hidden] { display: none; }
       #countdown { min-height: 22px; margin: 4px 0 0; color: #7dd3fc; font-size: 16px; font-weight: 800; }
+      #waterButton.pulse { animation: pulse 1.35s ease-in-out infinite; }
+      @keyframes pulse { 50% { transform: scale(1.035); box-shadow: 0 0 24px rgb(56 189 248 / .9); } }
     </style>
   </head>
   <body>
@@ -69,12 +74,16 @@
       </div>
       <p id="status" role="status">Интервал: каждый час</p>
       <p id="countdown" aria-live="polite">Выбери интервал</p>
-      <button id="stopButton" type="button" hidden>Остановить</button>
+      <div class="actions">
+        <button id="testButton" type="button">Проверить сейчас</button>
+        <button id="stopButton" type="button" hidden>Остановить</button>
+      </div>
     </main>
     <script>
       const waterButton = document.querySelector('#waterButton');
       const status = document.querySelector('#status');
       const stopButton = document.querySelector('#stopButton');
+      const testButton = document.querySelector('#testButton');
       const countdown = document.querySelector('#countdown');
       const choices = [...document.querySelectorAll('.choice')];
       const repeatChoices = [...document.querySelectorAll('.repeat')];
@@ -115,14 +124,24 @@
         document.body.classList.add('flash');
       }
 
+      function externalVoice(text, count = 1) {
+        let remaining = count;
+        const playNext = () => {
+          if (remaining-- <= 0) return;
+          const audio = new Audio('https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ru&q=' + encodeURIComponent(text));
+          audio.onended = playNext;
+          audio.play().catch(() => {});
+        };
+        playNext();
+      }
+
       function speak(text, count = 1) {
+        externalVoice(text, count);
         if (!('speechSynthesis' in window)) return;
         window.speechSynthesis.cancel();
         for (let index = 0; index < count; index += 1) {
           const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = 'ru-RU';
-          utterance.rate = 0.9;
-          utterance.pitch = 1;
+          utterance.lang = 'ru-RU'; utterance.rate = 0.9; utterance.pitch = 1;
           window.speechSynthesis.speak(utterance);
         }
       }
@@ -151,6 +170,7 @@
       function start() {
         clearInterval(timer);
         waterButton.classList.add('running');
+        waterButton.classList.add('pulse');
         waterButton.setAttribute('aria-pressed', 'true');
         stopButton.hidden = false;
         status.textContent = 'Напоминаю ' + labelFor(minutes);
@@ -167,6 +187,7 @@
         clearInterval(timer); clearInterval(countdownTimer); timer = null;
         window.speechSynthesis?.cancel();
         waterButton.classList.remove('running');
+        waterButton.classList.remove('pulse');
         waterButton.setAttribute('aria-pressed', 'false');
         stopButton.hidden = true;
         status.textContent = 'Таймер остановлен';
@@ -185,6 +206,7 @@
       }));
       waterButton.addEventListener('click', () => timer ? stop() : start());
       stopButton.addEventListener('click', stop);
+      testButton.addEventListener('click', remind);
       choices[0].classList.add('selected');
       repeatChoices[0].classList.add('selected');
       setTimeout(greet, 250);
