@@ -33,6 +33,7 @@
       #status { min-height: 30px; margin: 5px 0 0; color: #e2e8f0; font-size: 12px; line-height: 1.35; }
       #stopButton { margin-top: 6px; border: 0; background: transparent; color: #fca5a5; font: inherit; font-size: 11px; cursor: pointer; }
       #stopButton[hidden] { display: none; }
+      #countdown { min-height: 22px; margin: 4px 0 0; color: #7dd3fc; font-size: 16px; font-weight: 800; }
     </style>
   </head>
   <body>
@@ -48,15 +49,19 @@
         <button class="choice" data-minutes="1">1 минута</button>
       </div>
       <p id="status" role="status">Интервал: каждый час</p>
+      <p id="countdown" aria-live="polite">Выбери интервал</p>
       <button id="stopButton" type="button" hidden>Остановить</button>
     </main>
     <script>
       const waterButton = document.querySelector('#waterButton');
       const status = document.querySelector('#status');
       const stopButton = document.querySelector('#stopButton');
+      const countdown = document.querySelector('#countdown');
       const choices = [...document.querySelectorAll('.choice')];
       let minutes = 60;
       let timer = null;
+      let countdownTimer = null;
+      let nextReminderAt = 0;
 
       function labelFor(value) {
         return ({ 60: 'каждый час', 30: 'каждые 30 минут', 10: 'каждые 10 минут', 5: 'каждые 5 минут', 1: 'каждую минуту' })[value];
@@ -92,6 +97,16 @@
           window.speechSynthesis.speak(phrase);
         }
         status.textContent = 'Пора пить воду! Повтор: ' + labelFor(minutes);
+        nextReminderAt = Date.now() + minutes * 60 * 1000;
+        updateCountdown();
+      }
+
+      function updateCountdown() {
+        if (!timer) return;
+        const seconds = Math.max(0, Math.ceil((nextReminderAt - Date.now()) / 1000));
+        const mins = Math.floor(seconds / 60);
+        const secs = String(seconds % 60).padStart(2, '0');
+        countdown.textContent = 'Следующее через ' + mins + ':' + secs;
       }
 
       function start() {
@@ -100,16 +115,21 @@
         waterButton.setAttribute('aria-pressed', 'true');
         stopButton.hidden = false;
         status.textContent = 'Напоминаю ' + labelFor(minutes);
+        nextReminderAt = Date.now() + minutes * 60 * 1000;
+        clearInterval(countdownTimer);
+        countdownTimer = setInterval(updateCountdown, 1000);
+        updateCountdown();
         timer = setInterval(remind, minutes * 60 * 1000);
       }
 
       function stop() {
-        clearInterval(timer); timer = null;
+        clearInterval(timer); clearInterval(countdownTimer); timer = null;
         window.speechSynthesis?.cancel();
         waterButton.classList.remove('running');
         waterButton.setAttribute('aria-pressed', 'false');
         stopButton.hidden = true;
         status.textContent = 'Таймер остановлен';
+        countdown.textContent = 'Выбери интервал';
       }
 
       choices.forEach(choice => choice.addEventListener('click', () => {
